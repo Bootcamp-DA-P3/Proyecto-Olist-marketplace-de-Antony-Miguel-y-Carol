@@ -1,9 +1,12 @@
 -- DATAFRAME 1 · Actividad de clientes
 -- Tablas: customers, orders, order_payments, order_reviews, geolocation
 --
--- GRANO DECLARADO: una fila = ...............................
--- (rellenad esta linea ANTES de escribir el primer JOIN)
+-- GRANO DECLARADO: No tiene grano
 
+SELECT COUNT(DISTINCT customer_unique_id) AS total_clientes
+FROM customers;
+
+'''
 SELECT COUNT(DISTINCT customer_unique_id) AS total_clientes
 FROM customers;
 SELECT c.customer_state, 
@@ -27,3 +30,4 @@ SELECT review_score, COUNT(*) AS cantidad
 FROM order_reviews
 GROUP BY review_score
 ORDER BY review_score;
+'''

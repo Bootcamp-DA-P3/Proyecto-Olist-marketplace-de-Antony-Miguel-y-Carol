@@ -18,12 +18,12 @@ from src.config import (
 
 CONSULTAS = {
     # TABLA DE HECHOS.
-    "df4_tabla_hechos": "-",
+    "df4_tabla_hechos": "con4",
 
     # DIMENSIONES.
-    "df1_actividad_clientes": "-",
-    "df2_catalogo_productos": "-",
-    "df3_vendedores_popularidad": "-",
+    "df3_vendedores_popularidad": "con3",
+    "df2_catalogo_productos": "con3",
+    #"df1_actividad_clientes": "con2",
 }
 
 def crear_engine():

@@ -1,7 +1,7 @@
 -- DATAFRAME 2 · Catalogo de productos
 -- Tablas: products, categoria_traduccion, order_items, sellers
 --
--- GRANO DECLARADO: una fila = ...............................
+-- GRANO DECLARADO: No tiene grano
 
 SELECT 
     o.order_id AS 'ID de Pedido',

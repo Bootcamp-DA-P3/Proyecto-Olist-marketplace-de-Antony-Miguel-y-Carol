@@ -25,3 +25,5 @@ data/raw/
 # Ficheros CSV
 data/*.csv
 data/*.xlsx
+dashboard/*.csv
+dashboard/*.xlsx
