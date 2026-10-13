@@ -14,6 +14,7 @@ __pycache__/
 # Configuración de editores
 .vscode/
 .idea/
+.ipynb_checkpoints/
 
 # Variables de entorno (¡secretos!)
 .env
@@ -22,4 +23,5 @@ __pycache__/
 data/raw/
 
 # Ficheros CSV
-data/df3_vendedores_popularidad.csv
+data/*.csv
+data/*.xlsx

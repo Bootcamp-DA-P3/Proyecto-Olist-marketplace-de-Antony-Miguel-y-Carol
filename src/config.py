@@ -8,13 +8,14 @@ RAIZ = Path(__file__).resolve().parent.parent
 
 load_dotenv(RAIZ / ".env")
 
+# Conexion a MySQL
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", 3306)
 DB_NAME = os.getenv("DB_NAME", "olist")
 
-
+# Comprobación si falta alguna variable de acceso a MySql
 _faltan = [
     nombre
     for nombre, valor in (
@@ -33,11 +34,11 @@ if _faltan:
         "Copia .env_example a .env y rellena tus credenciales."
     )
 
-# Carpetas de trabajo
-CARPETA_QUERIES = RAIZ / "sql"
-CARPETA_OUTPUT = RAIZ / os.getenv("DATA_FOLDER", "data")
 
-# Excel. El ETL no disena el dashboard: solo crea el libro si no existe,
-# apunta a las fuentes y lo abre.
+# Carpetas de trabajo
+CARPETA_SQL = RAIZ / "sql"
+CARPETA_DATA = RAIZ / os.getenv("OUTPUT_DATA", "data")
+
+# Excel. El ETL crea el libro si no existe, apunta a las fuentes y lo abre.
 EXCEL_FILE = RAIZ / os.getenv("EXCEL_FILE", "dashboard/Olist_Dashboard.xlsx")
 AUTO_OPEN_EXCEL = os.getenv("AUTO_OPEN_EXCEL", "true").lower() == "true"

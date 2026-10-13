@@ -1,96 +1,30 @@
-import pandas as pd
-from pathlib import Path
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
-from config import *
+import sys
 
-RAIZ = Path(__file__).resolve().parent.parent
-SQL = RAIZ / "sql"
-DATA = RAIZ / "data"
-
-# ---------------------------------------------------------------------------
-# CONFIGURACIÓN DEL EQUIPO
-# ---------------------------------------------------------------------------
-
-# CSV elegido
-CONSULTA = "df3_vendedores_popularidad.sql"
-
-# El grano, en lenguaje de negocio.
-GRANO = "Actividad acumulada de un producto único comercializado por un vendedor específico"
-
-# Columna que identifica una fila según ese grano.
-CLAVE_DE_GRANO = "seller_id, product_id"
-
-# ---------------------------------------------------------------------------
-
-def crear_engine():
-    print("Entro - Crear engine")
-    """Crea el motor de conexión a MySQL con las credenciales del .env."""
-    #url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-    url = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    return create_engine(url)
-
-def leer_consulta(nombre):
-    """Devuelve el contenido del fichero .sql que contiene la consulta."""
-    ruta = SQL / nombre
-    return ruta.read_text(encoding="utf-8")
-
-def ejecutar(engine, consulta_sql):
-    """Ejecuta la consulta y devuelve un DataFrame de pandas."""
-    try:
-        with engine.connect() as conexion:
-            df = pd.read_sql_query(consulta_sql, con=conexion)
-            return df
-
-    except SQLAlchemyError as e:
-        print(f"❌ Error al conectar a la base de datos o ejecutar el SQL: {e}")
-        return None
-
-    except Exception as e:
-        print(f"❌ Ocurrió un error inesperado: {e}")
-        return None
-
-def comprobar_grano(df):
-    """Avisa si el número de filas no cuadra con el grano declarado."""
-    filas = len(df)
-    vendedores = df['seller_id'].nunique()
-    #productos = df[product_id].nunique()
-
-    if filas != vendedores:
-        filas_dupli = filas - vendedores
-        print(
-            f"El DataFrame no cumple el grano de un vendedor'.\n"
-            f"El JOIN está duplicando filas."
-        )
-        return False
-    print("El grano es correcto.")
-    return True
-
-def exportar(df, nombre_csv):
-    """Guarda el DataFrame en data/ como CSV."""
-    DATA.mkdir(exist_ok=True)  # por si la carpeta no existe todavía
-    # Definir la ruta completa del archivo
-    ruta_salida = DATA / nombre_csv
-    # Exportar con index=False y encoding='utf-8-sig'
-    df.to_csv(ruta_salida, index=False, encoding="utf-8-sig")
-    print(f"Archivo exportado correctamente en: {ruta_salida.resolve()}")
+from src.config import AUTO_OPEN_EXCEL, EXCEL_FILE, RAIZ
+from src.excel import abrir_libro, crear_libro_si_no_existe
+from src.olist_ETL import ejecutar_etl
 
 def main():
-    print(f"Consulta ....... {CONSULTA}")
-    print(f"Grano .......... una fila = {GRANO}")
+    print(f"Inicializando....")
+    try:
+        resultados = ejecutar_etl()
+    except Exception as error:
+        print(f"ETL detenido: {error}")
+        return 1
 
-    engine = crear_engine()
-    consulta_sql = leer_consulta(CONSULTA)
-    df = ejecutar(engine, consulta_sql)
+    print("Ficheros CSV generados en data/:")
+    for nombre, (filas, destino) in resultados.items():
+        print(f"  {nombre:<22} {filas:>7} filas   {destino.name}")
 
-    print(df)
+    if crear_libro_si_no_existe(resultados):
+        print(f"\nLibro creado: {EXCEL_FILE.relative_to(RAIZ)}")
+        print("La hoja Fuentes lleva las rutas que necesita Power Query.")
 
-    print(f"Filas .......... {len(df):,}")
-    print(f"Columnas ....... {df.shape[1]}")
+    if AUTO_OPEN_EXCEL:
+        abrir_libro()
+        print("\nEn Excel: Datos > Actualizar todo para recargar los CSV.")
 
-    comprobar_grano(df)
-    exportar(df, CONSULTA.replace(".sql", ".csv"))
-
+    return 0
 
 if __name__ == "__main__":
     main()

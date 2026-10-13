@@ -1,20 +1,11 @@
-"""ETL de Olist: extrae con SQL, comprueba el grano y deja un CSV por consulta.
-
-Las tres fases del proceso estan separadas:
-    extraer   -> lee el .sql y lo ejecuta contra MySQL
-    comprobar -> valida que el resultado tiene el grano declarado
-    limpiar   -> aplica las reglas de src/limpieza.py
-    exportar  -> escribe el CSV
-    Las comprobaciones de grano son las que diferencian un ETL de un script que
-escribe ficheros.
-"""
+import pandas as pd
 
 from urllib.parse import quote_plus
-
-import pandas as pd
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 
-from src.limpieza import limpiar
+from src.limpieza import *
+
 from src.config import (
     DB_USER,
     DB_PASSWORD,
@@ -24,15 +15,18 @@ from src.config import (
     CARPETA_SQL,
     CARPETA_DATA,
 )
-# Cada consulta con la columna que define su grano.
+
 CONSULTAS = {
-    # Mx TABLA DE HECHOS. Mide, y es el centro del modelo.
-    # DIMENSIONES. Describen, y se unen al hecho por su clave.
-    # Segundo hecho
-    # Un modelo puede tener varios hechos mientras cada uno declare su grano.
+    # TABLA DE HECHOS.
+    "df4_tabla_hechos": "-",
+
+    # DIMENSIONES.
+    "df1_actividad_clientes": "-",
+    "df2_catalogo_productos": "-",
+    "df3_vendedores_popularidad": "-",
 }
+
 def crear_engine():
-    print("Entro - Crear engine")
     """Crea el motor de conexión a MySQL con las credenciales del .env."""
     if not DB_USER or not DB_PASSWORD:
         raise RuntimeError(
@@ -42,49 +36,58 @@ def crear_engine():
     #url = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
     url = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     return create_engine(url)
-def leer_consulta(nombre):
-    """Devuelve el contenido del fichero .sql que contiene la consulta."""
-    ruta = SQL / nombre
-    return ruta.read_text(encoding="utf-8")
 
-def ejecutar(engine, consulta_sql):
-    """Ejecuta la consulta y devuelve un DataFrame de pandas."""
-    try:
-        with engine.connect() as conexion:
-            df = pd.read_sql_query(consulta_sql, con=conexion)
-            return df
 
-    except Exception as e:
-        print(f"❌ Ocurrió un error inesperado: {e}")
-        return None
-def comprobar_grano(df):
-    """Avisa si el número de filas no cuadra con el grano declarado."""
-    filas = len(df)
-    vendedores = df['seller_id'].nunique()
-    #productos = df[product_id].nunique()
+def extraer(engine, nombre):
+    """Ejecuta queries/<nombre>.sql y devuelve el resultado como DataFrame."""
+    ruta = CARPETA_SQL / f"{nombre}.sql"
+    if not ruta.exists():
+        raise FileNotFoundError(f"No existe la consulta {ruta}")
 
-    if filas != vendedores:
-        filas_dupli = filas - vendedores
-        print(
-            f"El DataFrame no cumple el grano de un vendedor'.\n"
-            f"El JOIN está duplicando filas."
+    consulta = ruta.read_text(encoding="utf-8").strip().rstrip(";")
+    return pd.read_sql(text(consulta), engine)
+
+def comprobar_grano(df, clave, nombre):
+    """Detiene el proceso si la consulta no respeta el grano que declara."""
+    if clave not in df.columns:
+        raise KeyError(f"{nombre}: la consulta no devuelve la columna de grano '{clave}'")
+
+    distintos = df[clave].nunique(dropna=False)
+    if distintos != len(df):
+        raise ValueError(
+            f"{nombre}: {len(df)} filas para {distintos} valores distintos de '{clave}'. "
+            "Algo esta multiplicando filas: el JOIN del .sql o una regla de limpieza."
         )
-        return False
-    print("El grano es correcto.")
-    return True    
+
 def exportar(df, nombre_csv):
     """Guarda el DataFrame en data/ como CSV."""
-    CARPETA_DATA.mkdir(exist_ok=True)  # por si la carpeta no existe todavía
+    # por si la carpeta no existe todavía
+    CARPETA_DATA.mkdir(parents=True, exist_ok=True)
     # Definir la ruta completa del archivo
-    ruta_salida = CARPETA_DATA / nombre_csv
+    ruta_salida = CARPETA_DATA / f"{nombre_csv}.csv"
     # Exportar con index=False y encoding='utf-8-sig'
     df.to_csv(ruta_salida, index=False, encoding="utf-8-sig")
     print(f"Archivo exportado correctamente en: {ruta_salida.resolve()}")
+    return ruta_salida
 
 def ejecutar_etl():
     """Recorre todas las consultas. Devuelve {nombre: (filas, ruta del csv)}."""
     engine = crear_engine()
     resultados = {}
-    """"Mx"""
+
+    for nombre, clave_de_grano in CONSULTAS.items():
+        df = extraer(engine, nombre)
+        # comprobar_grano(df, clave_de_grano, f"{nombre} (SQL)")
+        if clave_de_grano == "df1_actividad_clientes":
+            df = limpiar_1(df, nombre)
+        elif clave_de_grano == "df2_catalogo_productos":
+            df = limpiar_2(df, nombre)
+        elif clave_de_grano == "df3_vendedores_popularidad":
+            df = limpiar_3(df, nombre)
+        elif clave_de_grano == "df4_tabla_hechos":
+            df = limpiar_4(df, nombre)
+
+        # comprobar_grano(df, clave_de_grano, f"{nombre} (tras limpiar)")
+        resultados[nombre] = (len(df), exportar(df, nombre))
 
     return resultados
