@@ -4,27 +4,23 @@ import numpy as np
 def limpiar_1(df, nombre):
     df = df.copy()
     
-    # Normalizar nombres de columnas eliminando espacios y convirtiendo a minúsculas
-    df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
-    
-    # Normalizar estados a mayúsculas y ciudades/textos a minúsculas
-    for col in df.select_dtypes(include=['object']).columns:
-        if 'state' in col.lower() or 'estado' in col.lower():
-            df[col] = df[col].astype(str).str.upper().str.strip()
-        else:
-            df[col] = df[col].astype(str).str.lower().str.strip()
-            
-    # Conversión de métricas numéricas
-    if 'nota_media' in df.columns:
-        df['nota_media'] = pd.to_numeric(df['nota_media'], errors='coerce').fillna(0.0).round(2)
-    if 'clientes' in df.columns:
-        df['clientes'] = pd.to_numeric(df['clientes'], errors='coerce').fillna(0).astype(int)
+    # Rellenar valores nulos en la nota media con 0 (clientes sin reseñas)
+    if 'nota_media_cliente' in df.columns:
+        df['nota_media_cliente'] = df['nota_media_cliente'].fillna(0)
+        
+    # Estandarizar columnas de texto (ciudades y estados)
+    if 'customer_city' in df.columns:
+        df['customer_city'] = df['customer_city'].str.strip().str.lower()
+        
+    if 'customer_state' in df.columns:
+        df['customer_state'] = df['customer_state'].str.strip().str.upper()
+        
+    # Asegurar tipos numéricos enteros
     if 'total_pedidos' in df.columns:
-        df['total_pedidos'] = pd.to_numeric(df['total_pedidos'], errors='coerce').fillna(0).astype(int)
-    if 'cantidad' in df.columns:
-        df['cantidad'] = pd.to_numeric(df['cantidad'], errors='coerce').fillna(0).astype(int)
-    if 'review_score' in df.columns:
-        df['review_score'] = pd.to_numeric(df['review_score'], errors='coerce').fillna(0).astype(int)
+        df['total_pedidos'] = df['total_pedidos'].astype(int)
+        
+    if 'total_clientes_global' in df.columns:
+        df['total_clientes_global'] = df['total_clientes_global'].astype(int)
         
     return df
 

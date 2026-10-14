@@ -3,31 +3,14 @@
 --
 -- GRANO DECLARADO: No tiene grano
 
-SELECT COUNT(DISTINCT customer_unique_id) AS total_clientes
-FROM customers;
-
-'''
-SELECT COUNT(DISTINCT customer_unique_id) AS total_clientes
-FROM customers;
-SELECT c.customer_state, 
-    AVG(r.review_score) AS nota_media,
-    COUNT(DISTINCT c.customer_unique_id) AS clientes
-FROM customers c
-JOIN orders o ON c.customer_id = o.customer_id
-JOIN order_reviews r ON o.order_id = r.order_id
-GROUP BY c.customer_state
-ORDER BY clientes DESC;
-SELECT c.customer_unique_id,
+SELECT 
+    c.customer_unique_id,
     c.customer_city,
     c.customer_state,
-    COUNT(o.order_id) AS total_pedidos
+    COUNT(DISTINCT o.order_id) AS total_pedidos,
+    AVG(r.review_score) AS nota_media_cliente,
+    (SELECT COUNT(DISTINCT cust.customer_unique_id) FROM customers cust) AS total_clientes_global
 FROM customers c
-JOIN orders o ON c.customer_id = o.customer_id
-GROUP BY c.customer_unique_id, c.customer_city, c.customer_state
-ORDER BY total_pedidos DESC
-LIMIT 10;
-SELECT review_score, COUNT(*) AS cantidad
-FROM order_reviews
-GROUP BY review_score
-ORDER BY review_score;
-'''
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+LEFT JOIN order_reviews r ON o.order_id = r.order_id
+GROUP BY c.customer_unique_id, c.customer_city, c.customer_state;

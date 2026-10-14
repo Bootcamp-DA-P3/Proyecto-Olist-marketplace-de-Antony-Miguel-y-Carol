@@ -23,7 +23,7 @@ CONSULTAS = {
     # DIMENSIONES.
     "df3_vendedores_popularidad": "con3",
     "df2_catalogo_productos": "con3",
-    #"df1_actividad_clientes": "con2",
+    "df1_actividad_clientes": "con2",
 }
 
 def crear_engine():
