@@ -116,8 +116,8 @@ El dataset preparado permite monitorear y evaluar los siguientes Indicadores Cla
 
 ## 🚀 Instrucciones de Ejecución
 
-1. **Configuración de la Base de Datos (MySQL)
-   * **Descargar e importar el archivo olist.sql en tu gestor de base de datos MySQL local:
+1. **Configuración de la Base de Datos (MySQL)**
+   * **Descargar e importar el archivo olist.sql** en tu gestor de base de datos MySQL local:
 
    Descarga el volcado y cárgalo en tu MySQL local:
 
@@ -162,8 +162,8 @@ El dataset preparado permite monitorear y evaluar los siguientes Indicadores Cla
    > Fuente: [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) · licencia CC BY-NC-SA 4.0.
 
 
-2.  **Entorno y ejecución en Visual Studio Code
-    * **Abrir un terminal en la carpeta que se quiera descargar el proyecto.
+2.  **Entorno y ejecución en Visual Studio Code**
+    * **Abrir un terminal en la carpeta que se quiera descargar el proyecto.**
 
     ```bash
     git clone https://github.com/Bootcamp-DA-P3/Proyecto-3-flujo-de-datos-de-SQL-a-Python-de-Antony-Miguel-y-Carol.git
@@ -171,7 +171,7 @@ El dataset preparado permite monitorear y evaluar los siguientes Indicadores Cla
     code .
     ```
 
-    * **Instalación de librerias necesarias.
+    * **Instalación de librerias necesarias.**
 
     ```bash
     python -m venv .venv
@@ -179,7 +179,7 @@ El dataset preparado permite monitorear y evaluar los siguientes Indicadores Cla
     pip install -r requirements.txt
     ```
 
-    * **Crear copia de `.env_example` llamada `.env` y rellenar los datos de vuestro entorno.
+    * **Crear copia de `.env_example` llamada `.env` y rellenar los datos de vuestro entorno.**
 
     ```bash
     DB_USER=
@@ -189,15 +189,15 @@ El dataset preparado permite monitorear y evaluar los siguientes Indicadores Cla
     DB_NAME=
     ```
 
-     * **Generar fichero .csv
+     * **Generar fichero .csv**
 
     ```bash
     python main.py
     ```
 
-    3.  **Entorno y ejecución en Excel o PowerBI
-    * **Abrir aplicación seleccionada.
-    * **Actualizar enlaces de datos.
-    * **Visualizar dashboard.
+    3.  **Entorno y ejecución en Excel o PowerBI**
+    * **Abrir aplicación seleccionada.**
+    * **Actualizar enlaces de datos.**
+    * **Visualizar dashboard.**
 
 ---
