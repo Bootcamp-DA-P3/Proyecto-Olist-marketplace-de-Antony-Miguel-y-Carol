@@ -1,14 +1,15 @@
-<img width="11520" height="3456" alt="Banner_notebooks" src="./assets/banner_p3.jpg" />
+<img width="11520" height="3456" alt="Banner_notebooks" src="./assets/banner_p5.jpg" />
 
-# Flujo de datos de SQL a Python — Olist Marketplace 🛒
+# Flujo de datos de SQL > Python > PowerBi — Olist Marketplace 🛒
 
 ## 📝 Descripción del Proyecto
 
-Este proyecto aborda la extracción, modelado y limpieza de los datos transaccionales del marketplace brasileño **Olist** (2016–2018). El objetivo principal consiste en transformar un modelo de datos relacional y transaccional (OLTP) en un **conjunto de datos analítico (OLAP)** optimizado para responder a preguntas clave de negocio, automatizaciones ETL y la posterior construcción de cuadros de mando analíticos.
+Este proyecto aborda la extracción, modelado y limpieza de los datos transaccionales del marketplace brasileño **Olist** (2016–2018). El objetivo principal consiste en transformar un modelo de datos relacional y transaccional (OLTP) en un **conjunto de datos analítico (OLAP)** optimizado para responder a preguntas clave de negocio, automatizaciones ETL y la posterior construcción de cuadros de mando analíticos. Con estos datos se generarán un Dashboard que muestre el estudio realizado.
 
-El flujo de trabajo se divide en dos grandes bloques:
+El flujo de trabajo se divide en tres grandes bloques:
 1. **Modelado y limpieza en SQL:** Creación de dataframes exploratorios y definición de una consulta analítica estandarizada y agregada.
 2. **Procesamiento y limpieza final en Python:** Validación de tipos, tratamiento de atípicos, ingeniería de características y exportación optimizada.
+3. **Importación a PowerBi y creación del Dashboard:** Implementación de medidas y gráficos.
 
 ---
 
@@ -21,14 +22,39 @@ El flujo de trabajo se divide en dos grandes bloques:
 
 ---
 
-## 📌 Definición estratégica del Dataframe seleccionado
+## 📌 Definición estratégica de los Dataframe usados
+
+### Dataframe 1: Actividad clientes
+
+> **Grano declarado:**  
+> **«Una fila por order_id (nivel de pedido individual).»**
+> ** **
+> **Columna clave:**  
+> **«order_id (y agrupado por customer_unique_id para métricas de clientes).»**
+
+### Dataframe 2: Catalogo de productos
+
+> **Grano declarado:**  
+> **«Una fila por ítem dentro de cada pedido (order_id + order_item_id implícito en la relación).»**
+> ** **
+> **Columna clave:**  
+> **«product_id combinado con seller_id.»**
 
 ### Dataframe 3: Vendedores y popularidad
 
 > **Grano declarado:**  
-> **«Una fila representa la actividad acumulada de un producto único comercializado por un vendedor específico.»**
+> **«Una fila por cada combinación de seller_id y product_id.»**
+> ** **
+> **Columna clave:**  
+> **«seller_id y product_id.»**
 
-* **Clave primaria compuesta:** `(seller_id, product_id)`
+### Dataframe 4: Tabla de hechos
+
+> **Grano declarado:**  
+> **«Nivel de línea de pedido (order_id + order_item_id).»**
+> ** **
+> **Columna clave:**  
+> **«Claves foráneas hacia las dimensiones de clientes, productos y vendedores.»**
 
 ---
 
@@ -36,68 +62,10 @@ El flujo de trabajo se divide en dos grandes bloques:
 
 El dataset preparado permite monitorear y evaluar los siguientes Indicadores Clave de Rendimiento (KPIs):
 
-1. **Unidades vendidas por producto (`unidades_vendidas_producto`):** Frecuencia de movimiento de cada artículo en el catálogo de un vendedor.
-2. **Número de pedidos distintos (`pedidos_distintos_producto`):** Penetración del producto en pedidos únicos (evita duplicidades por cantidad).
-3. **Facturación por producto (`ingreso_total_producto`):** Volumen monetario total aportado por un producto específico a las ventas de un vendedor.
-4. **Ranking de popularidad (`ranking_producto_en_vendedor`):** Posición relativa del producto según la preferencia de compra dentro del catálogo de un vendedor.
-5. **Concentración de catálogo:** Proporción del volumen de ventas generado por los productos top en comparación con el resto del inventario.
-
----
-
-## 🛠️ Extracción y Limpieza en SQL
-
-### Criterios y reglas de negocio aplicadas
-* **Estandarización de cadenas:** Aplicación de `LOWER(TRIM())` en `seller_city` y `seller_state` para corregir inconsistencias tipográficas y de formato.
-* **Integridad referencial:** Integración mediante `INNER JOIN` entre `sellers`, `order_items` y `products`, garantizando que únicamente se analicen registros activos y válidos.
-* **Manejo de duplicidad por ítem:** `order_items` almacena cada unidad vendida como un registro independiente. Se implementó `COUNT(DISTINCT order_id)` para contabilizar la cantidad real de transacciones sin sobreestimar el volumen de pedidos.
-* **Productos sin ventas:** Se excluyen los productos del catálogo que no han registrado ventas para centrar el modelo en la actividad económica activa y no distorsionar los cálculos de rendimiento.
-
-### 📄 Consulta SQL Final (`query_vendedores_popularidad.sql`)
-
-```sql
-SELECT 
-    LOWER(TRIM(s.seller_city)) AS seller_city_clean,
-    LOWER(TRIM(s.seller_state)) AS seller_state_clean,
-    s.seller_id,
-    p.product_id,
-    p.product_category_name,
-    COUNT(oi.order_item_id) AS unidades_vendidas_producto,
-    COUNT(DISTINCT oi.order_id) AS pedidos_distintos_producto,
-    ROUND(SUM(oi.price), 2) AS ingreso_total_producto,
-    DENSE_RANK() OVER (
-        PARTITION BY s.seller_id 
-        ORDER BY COUNT(oi.order_item_id) DESC, SUM(oi.price) DESC
-    ) AS ranking_producto_en_vendedor
-FROM sellers s
-INNER JOIN order_items oi 
-    ON s.seller_id = oi.seller_id
-INNER JOIN products p 
-    ON oi.product_id = p.product_id
-GROUP BY 
-    LOWER(TRIM(s.seller_city)),
-    LOWER(TRIM(s.seller_state)),
-    s.seller_id,
-    p.product_id,
-    p.product_category_name
-ORDER BY 
-    unidades_vendidas_producto DESC,
-    ingreso_total_producto DESC;
-```
-
----
-
-## 🐍 Procesamiento y limpieza en Python (Google Colab)
-
-El procesamiento del dataframe exportado se llevó a cabo dentro del notebook Jupyter en Google Colab siguiendo las siguientes etapas:
-
-1. **Carga e inspección inicial:** Verificación del número de registros, estructura del dataset e identificación del uso de memoria.
-2. **Normalización de tipos de datos:** Conversión explícita de campos identificadores a tipo cadena (`string`) y métricas numéricas a enteros/flotantes (`int64`, `float64`).
-3. **Tratamiento de valores nulos:** Imputación de categorías desconocidas en `product_category_name` mediante el valor por defecto `'sin_categoria'`.
-4. **Validación de inconsistencias y duplicados:** Confirmación de la inexistencia de filas duplicadas en la combinación `(seller_id, product_id)`.
-5. **Análisis de outliers:** Identificación de valores atípicos en precios e ingresos agrupados a través de diagramas de caja (boxplots) e histogramas.
-6. **Ingeniería de características (Columnas derivadas):**
-   * **`precio_promedio_unidad`:** Calculado como `ingreso_total_producto / unidades_vendidas_producto`.
-   * **`es_top_vendedor`:** Indicador booleano (`True`/`False`) que identifica si el producto ocupa el puesto número 1 en ventas dentro del catálogo del vendedor.
+1. **Promedio de dias de entraga:** Frecuencia con la que un paquete es entregado.
+2. **Puntuación media de las reseñas:** Nota media que los clientes dan sobre los productos adquiridos.
+3. **Tasa de retraso:** Porcentaje de pedidos que se entregan con retraso a la fecha estimada.
+4. **Total de ingresos:** Monto total de las ventas realizadas.
 
 ---
 
@@ -105,26 +73,43 @@ El procesamiento del dataframe exportado se llevó a cabo dentro del notebook Ju
 
 ```
 .
-├── sql/                               ← las TRES consultas, en SQL Workbench
-│   ├── df1_actividad_clientes.sql
-│   ├── df2_catalogo_productos.sql
-│   └── df3_vendedores_popularidad.sql
+├── assets/                             ← agregados al proyecto
+│   └── banner_p5.jpg
 │
-├── src/                               ← el código, en VS Code
-│   ├── config.py                        lee las credenciales del .env
-│   └── main.py                          conecta, consulta y exporta el CSV
+├── dashboard/                          ← ficheros finales de entrega
+│   ├── OLD_Olist_Dashboard.pbix          version old
+│   ├── OLD_Olist_Dashboard.xlsx          version old
+│   ├── Olist_Dashboard.pbix      
+│   └── Olist_Dashboard.xlsx
+│         
+├── data/                               ← csv exportado
+│   ├── df1_actividad_clientes.csv
+│   ├── df2_catalogo_productos.csv
+│   ├── df3_vendedores_popularidad.csv
+│   └── df4_tabla_hechos.csv
 │
 ├── notebooks/
-│   └── limpieza.ipynb                 ← la limpieza final, en Colab o VS Code
+│   └── limpieza.ipynb                 ← fichero para pruebas de codigo
+│         
+├── sql/                               ← consultas en workbench
+│   ├── df1_actividad_clientes.sql
+│   ├── df2_catalogo_productos.sql
+│   ├── df3_vendedores_popularidad.sql
+│   └── df4_tabla_hechos.sql
 │
-├── data/                              ← el CSV exportado. NO se sube
-│   └── .gitkeep
+├── src/                               ← el código, en VS Code
+│   ├── __init__.py                      init
+│   ├── config.py                        lee las credenciales del .env
+│   ├── excel.py                         operaciones en excel
+│   ├── limpieza.py                      limpieza de datos en py
+│   └── Olist_ETL.py                     enlace con workbench
 │
-├── .env                               ← vuestras credenciales. NO se sube
-├── .env_example                         plantilla del anterior, SÍ se sube
+├── .env                               ← vuestras credenciales.
+├── .env_example                         plantilla del anterior
 ├── .gitignore
-├── requirements.txt
-└── README.md                          ← documentad aquí vuestras decisiones
+├── main.py
+├── README.md                         
+└── requirements.txt
 ```
 
 ---
@@ -207,23 +192,12 @@ El procesamiento del dataframe exportado se llevó a cabo dentro del notebook Ju
      * **Generar fichero .csv
 
     ```bash
-    python src/main.py
+    python main.py
     ```
 
-    3.  **Entorno y ejecución en Google Colab
-    * **Abrir Google Colab y subir el notebook TERMINAR
-    * **Cargar el archivo CSV exportado desde SQL en el entorno de trabajo del notebook.
-    * **Ejecutar de forma secuencial todas las celdas del notebook para generar los análisis, visualizaciones y la versión final del dataset procesado.
+    3.  **Entorno y ejecución en Excel o PowerBI
+    * **Abrir aplicación seleccionada.
+    * **Actualizar enlaces de datos.
+    * **Visualizar dashboard.
 
 ---
-
-## 📋 Checklist de Limpieza (Python)
-
-- [ ] Verificación de tipos de datos y conversión adecuada.
-- [ ] Detección y tratamiento de valores duplicados.
-- [ ] Tratamiento de datos faltantes (nulos).
-- [ ] Estandarización de texto (cadenas sin espacios y en minúsculas).
-- [ ] Detección e inspección visual de outliers.
-- [ ] Creación de columnas derivadas útiles para negocio.
-- [ ] Generación de visualizaciones explicativas y de validación.
-- [ ] Exportación del dataset procesado en formato final.
