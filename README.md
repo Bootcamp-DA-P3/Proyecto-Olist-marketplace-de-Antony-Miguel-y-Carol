@@ -195,7 +195,7 @@ El dataset preparado permite monitorear y evaluar los siguientes Indicadores Cla
     python main.py
     ```
 
-    3.  **Entorno y ejecución en Excel o PowerBI**
+3.  **Entorno y ejecución en Excel o PowerBI**
     * **Abrir aplicación seleccionada.**
     * **Actualizar enlaces de datos.**
     * **Visualizar dashboard.**
